@@ -28,20 +28,38 @@ class Evaluator:
         """
         Evaluate the position from the perspective of the given color.
         Returns a score where positive is good for the color.
+        Optimized for maximum speed.
         """
         score = 0
         
-        # Material balance
+        # Material balance (most important, always calculate)
         score += self._material_balance(board, color)
         
-        # Piece mobility
-        score += self._piece_mobility(board, color) * 2
+        # Simplified mobility (only count own moves, not opponent's)
+        own_moves = len(board.get_all_moves(color))
+        score += own_moves  # Simple mobility bonus
         
-        # Center control
-        score += self._center_control(board, color) * 3
+        # King safety (simplified - only check if in check)
+        if board.is_in_check(color):
+            score -= 50
         
-        # King safety
-        score += self._king_safety(board, color) * 5
+        return score
+    
+    def _center_control_fast(self, board: Board, color: Color) -> int:
+        """Fast center control evaluation (only checks piece positions)."""
+        score = 0
+        
+        # Check center squares
+        for row, col in self.CENTER_SQUARES:
+            piece = board.board[row][col]
+            if piece is not None and piece.color == color:
+                score += 2
+        
+        # Check extended center
+        for row, col in self.EXTENDED_CENTER:
+            piece = board.board[row][col]
+            if piece is not None and piece.color == color:
+                score += 1
         
         return score
     

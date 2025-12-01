@@ -10,8 +10,8 @@ def main():
     parser.add_argument(
         '--depth',
         type=int,
-        default=3,
-        help='AI search depth (3-5 recommended, default: 3)'
+        default=1,
+        help='AI search depth (1 for very fast, 2 for fast, 3-4 for stronger, default: 1)'
     )
     parser.add_argument(
         '--console',

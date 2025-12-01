@@ -12,21 +12,26 @@ from .ai import ChessAI
 class ChessPygameGUI:
     """Pygame-based graphical user interface for the chess game."""
     
-    # Colors
-    LIGHT_SQUARE = (240, 217, 181)  # #F0D9B5
-    DARK_SQUARE = (181, 136, 99)     # #B58863
-    HIGHLIGHT = (247, 247, 105)      # #F7F769
-    SELECTED = (118, 150, 86)        # #769656
-    TEXT_COLOR = (0, 0, 0)
-    BG_COLOR = (255, 255, 255)
+    # Professional color scheme
+    LIGHT_SQUARE = (238, 238, 210)    # Classic light square
+    DARK_SQUARE = (118, 150, 86)      # Classic dark square
+    HIGHLIGHT = (247, 247, 105)       # Yellow highlight for valid moves
+    SELECTED = (186, 202, 68)         # Green for selected piece
+    CHECK_HIGHLIGHT = (255, 100, 100) # Red tint for check
+    BORDER_COLOR = (50, 50, 50)       # Board border
+    TEXT_COLOR = (40, 40, 40)         # Dark text
+    TEXT_LIGHT = (240, 240, 240)      # Light text
+    BG_COLOR = (45, 45, 45)           # Dark background
+    PANEL_BG = (35, 35, 35)           # Dark panel background
     
-    SQUARE_SIZE = 75
+    SQUARE_SIZE = 80  # Larger squares for better visibility
     BOARD_SIZE = SQUARE_SIZE * 8
-    PANEL_HEIGHT = 100
-    WINDOW_WIDTH = BOARD_SIZE
-    WINDOW_HEIGHT = BOARD_SIZE + PANEL_HEIGHT
+    BOARD_BORDER = 20
+    PANEL_HEIGHT = 120
+    WINDOW_WIDTH = BOARD_SIZE + (BOARD_BORDER * 2)
+    WINDOW_HEIGHT = BOARD_SIZE + (BOARD_BORDER * 2) + PANEL_HEIGHT
     
-    def __init__(self, ai_depth: int = 3):
+    def __init__(self, ai_depth: int = 1):
         """Initialize the Pygame GUI."""
         pygame.init()
         pygame.font.init()  # Initialize font system early
@@ -40,10 +45,10 @@ class ChessPygameGUI:
         self.screen = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption("CheckM8 - Chess Game")
         
-        # Load fonts
-        self.font_large = pygame.font.Font(None, 36)
-        self.font_medium = pygame.font.Font(None, 24)
-        self.font_small = pygame.font.Font(None, 18)
+        # Load professional fonts (not used directly, but available)
+        self.font_large = pygame.font.SysFont('Arial', 36, bold=True)
+        self.font_medium = pygame.font.SysFont('Arial', 24, bold=True)
+        self.font_small = pygame.font.SysFont('Arial', 18)
         
         # Create piece images/surfaces (this will use chess symbols)
         self.piece_images = self._create_piece_images()
@@ -60,10 +65,10 @@ class ChessPygameGUI:
             pygame.time.set_timer(pygame.USEREVENT, 100)  # Trigger AI move after 100ms
     
     def _create_piece_images(self) -> dict:
-        """Create 2D chess piece images with better rendering."""
+        """Create 2D chess piece images with professional rendering."""
         images = {}
-        piece_size = int(self.SQUARE_SIZE * 0.85)
-        border_size = 3
+        piece_size = int(self.SQUARE_SIZE * 0.75)  # Smaller pieces for cleaner look
+        border_size = 2
         
         # Unicode chess symbols (larger, clearer)
         symbols = {
@@ -123,33 +128,38 @@ class ChessPygameGUI:
             radius = piece_size // 2 - border_size
             
             if color == Color.WHITE:
-                # White piece: light base with dark border
+                # White piece: elegant white with subtle gradient
                 base_color = (255, 255, 255)
-                border_color = (100, 100, 100)
-                text_color = (0, 0, 0)
-            else:
-                # Black piece: dark base with light border
-                base_color = (60, 60, 60)
                 border_color = (180, 180, 180)
+                text_color = (30, 30, 30)
+                highlight_color = (250, 250, 250)
+                shadow_color = (200, 200, 200)
+            else:
+                # Black piece: rich dark with metallic look
+                base_color = (50, 50, 50)
+                border_color = (120, 120, 120)
                 text_color = (255, 255, 255)
+                highlight_color = (70, 70, 70)
+                shadow_color = (30, 30, 30)
             
-            # Draw main circle
+            # Draw subtle shadow for depth
+            pygame.draw.circle(surface, shadow_color, 
+                             (int(center_x + 1), int(center_y + 1)), 
+                             radius + 1)
+            
+            # Draw main circle with gradient effect
             pygame.draw.circle(surface, base_color, center, radius)
             
-            # Draw border
+            # Draw subtle inner highlight for 3D effect
+            pygame.draw.circle(surface, highlight_color, 
+                             (int(center_x - radius//4), int(center_y - radius//4)), 
+                             radius // 2)
+            
+            # Draw elegant border
             pygame.draw.circle(surface, border_color, center, radius, border_size)
             
-            # Draw inner highlight for 3D effect
-            if color == Color.WHITE:
-                highlight_color = (240, 240, 240)
-            else:
-                highlight_color = (80, 80, 80)
-            pygame.draw.circle(surface, highlight_color, 
-                             (center[0] - radius//3, center[1] - radius//3), 
-                             radius // 3)
-            
             # Draw symbol text - use arialunicode explicitly for chess symbols
-            font_size = int(piece_size * 0.9)  # Even larger symbol
+            font_size = int(piece_size * 0.55)  # Smaller, more elegant symbols
             
             # Always try arialunicode first (we know it works from testing)
             if chess_font_name:
@@ -166,16 +176,20 @@ class ChessPygameGUI:
                     font = pygame.font.SysFont(None, font_size, bold=True)
             
             # Render the chess symbol with proper centering
+            # First render to get exact dimensions
             text = font.render(symbol, True, text_color)
             
-            # Get the actual rendered text dimensions
+            # Get text dimensions for validation
             text_width = text.get_width()
             text_height = text.get_height()
             
-            # Calculate centered position using exact center coordinates
-            # Use get_rect(center=...) for perfect centering
+            # Get text bounding box for precise centering
             text_rect = text.get_rect()
-            text_rect.center = (center_x, center_y)
+            
+            # Center the text rectangle at the exact center of the piece
+            # Use centerx/centery for pixel-perfect alignment
+            text_rect.centerx = center_x
+            text_rect.centery = center_y
             
             # Always try to render the symbol first
             # Add a subtle shadow for better visibility
@@ -186,7 +200,8 @@ class ChessPygameGUI:
             
             shadow = font.render(symbol, True, shadow_color)
             shadow_rect = shadow.get_rect()
-            shadow_rect.center = (center_x + 1, center_y + 1)  # Slight offset for shadow
+            shadow_rect.centerx = center_x + 1
+            shadow_rect.centery = center_y + 1  # Slight offset for shadow
             
             # Blit shadow first, then text on top (perfectly centered)
             surface.blit(shadow, shadow_rect)
@@ -230,17 +245,29 @@ class ChessPygameGUI:
         return self.LIGHT_SQUARE if is_light else self.DARK_SQUARE
     
     def draw_board(self):
-        """Draw the chess board and pieces."""
-        # Draw squares
+        """Draw the chess board and pieces with professional styling."""
+        # Draw board background
+        board_x = self.BOARD_BORDER
+        board_y = self.BOARD_BORDER
+        
+        # Draw board border/shadow
+        border_rect = pygame.Rect(board_x - 2, board_y - 2, 
+                                 self.BOARD_SIZE + 4, self.BOARD_SIZE + 4)
+        pygame.draw.rect(self.screen, self.BORDER_COLOR, border_rect, 3)
+        
+        # Draw squares with professional styling
         for row in range(8):
             for col in range(8):
-                x = col * self.SQUARE_SIZE
-                y = row * self.SQUARE_SIZE
+                x = board_x + col * self.SQUARE_SIZE
+                y = board_y + row * self.SQUARE_SIZE
                 
                 # Draw square
                 color = self._get_square_color(row, col)
-                pygame.draw.rect(self.screen, color, 
-                              (x, y, self.SQUARE_SIZE, self.SQUARE_SIZE))
+                square_rect = pygame.Rect(x, y, self.SQUARE_SIZE, self.SQUARE_SIZE)
+                pygame.draw.rect(self.screen, color, square_rect)
+                
+                # Add subtle border to squares
+                pygame.draw.rect(self.screen, (200, 200, 200), square_rect, 1)
                 
                 # Draw piece
                 piece = self.board.get_piece(row, col)
@@ -252,58 +279,83 @@ class ChessPygameGUI:
                         img_height = piece_img.get_height()
                         img_x = x + (self.SQUARE_SIZE - img_width) // 2
                         img_y = y + (self.SQUARE_SIZE - img_height) // 2
-                        self.screen.blit(piece_img, (img_x, img_y))
+                        self.screen.blit(piece_img, (int(img_x), int(img_y)))
         
-        # Draw coordinates
+        # Draw coordinates with professional styling
+        coord_font = pygame.font.SysFont('Arial', 14, bold=True)
         for i in range(8):
             # Files (a-h) at bottom
-            file_text = self.font_small.render(chr(97 + i), True, self.TEXT_COLOR)
-            self.screen.blit(file_text, (i * self.SQUARE_SIZE + 5, self.BOARD_SIZE - 15))
+            file_char = chr(97 + i)
+            file_text = coord_font.render(file_char, True, self.TEXT_COLOR)
+            file_x = board_x + i * self.SQUARE_SIZE + self.SQUARE_SIZE // 2 - file_text.get_width() // 2
+            file_y = board_y + self.BOARD_SIZE + 5
+            self.screen.blit(file_text, (file_x, file_y))
             
             # Ranks (1-8) on left
-            rank_text = self.font_small.render(str(8 - i), True, self.TEXT_COLOR)
-            self.screen.blit(rank_text, (5, i * self.SQUARE_SIZE + 5))
+            rank_char = str(8 - i)
+            rank_text = coord_font.render(rank_char, True, self.TEXT_COLOR)
+            rank_x = board_x - 18
+            rank_y = board_y + i * self.SQUARE_SIZE + self.SQUARE_SIZE // 2 - rank_text.get_height() // 2
+            self.screen.blit(rank_text, (rank_x, rank_y))
     
     def draw_panel(self):
-        """Draw the status panel at the bottom."""
-        panel_y = self.BOARD_SIZE
+        """Draw the professional status panel at the bottom."""
+        panel_y = self.BOARD_SIZE + (self.BOARD_BORDER * 2)
         
-        # Draw panel background
-        pygame.draw.rect(self.screen, self.BG_COLOR, 
-                       (0, panel_y, self.WINDOW_WIDTH, self.PANEL_HEIGHT))
-        pygame.draw.line(self.screen, (200, 200, 200), 
-                        (0, panel_y), (self.WINDOW_WIDTH, panel_y), 2)
+        # Draw panel background with gradient effect
+        panel_rect = pygame.Rect(0, panel_y, self.WINDOW_WIDTH, self.PANEL_HEIGHT)
+        pygame.draw.rect(self.screen, self.PANEL_BG, panel_rect)
         
-        # Status text
+        # Draw elegant separator line
+        line_y = panel_y
+        pygame.draw.line(self.screen, (80, 80, 80), 
+                        (0, line_y), (self.WINDOW_WIDTH, line_y), 2)
+        pygame.draw.line(self.screen, (100, 100, 100), 
+                        (0, line_y + 1), (self.WINDOW_WIDTH, line_y + 1), 1)
+        
+        # Status text with professional styling
+        status_font = pygame.font.SysFont('Arial', 22, bold=True)
         if self.board.is_checkmate(self.board.current_turn):
             winner = "Black" if self.board.current_turn == Color.WHITE else "White"
             status_text = f"Checkmate! {winner} wins!"
-            color = (200, 0, 0)
+            color = (255, 80, 80)
         elif self.board.is_stalemate(self.board.current_turn):
             status_text = "Stalemate! Game is a draw."
-            color = (100, 100, 100)
+            color = (150, 150, 150)
         elif self.board.is_in_check(self.board.current_turn):
             turn = "White" if self.board.current_turn == Color.WHITE else "Black"
-            status_text = f"{turn} to move (Check!)"
-            color = (200, 0, 0)
+            status_text = f"{turn} to move • CHECK!"
+            color = (255, 100, 100)
         elif self.ai_thinking:
             status_text = "AI is thinking..."
-            color = (0, 100, 200)
+            color = (100, 180, 255)
         else:
             turn = "White" if self.board.current_turn == Color.WHITE else "Black"
             status_text = f"{turn} to move"
-            color = self.TEXT_COLOR
+            color = self.TEXT_LIGHT
         
-        text = self.font_medium.render(status_text, True, color)
-        text_rect = text.get_rect(center=(self.WINDOW_WIDTH // 2, panel_y + 30))
+        text = status_font.render(status_text, True, color)
+        text_rect = text.get_rect(center=(self.WINDOW_WIDTH // 2, panel_y + 35))
         self.screen.blit(text, text_rect)
         
-        # Instructions
+        # Instructions with subtle styling
         if self.board.current_turn == Color.WHITE and not self.ai_thinking:
-            inst_text = self.font_small.render("Click a piece, then click a highlighted square to move", 
-                                             True, (100, 100, 100))
-            inst_rect = inst_text.get_rect(center=(self.WINDOW_WIDTH // 2, panel_y + 60))
+            inst_font = pygame.font.SysFont('Arial', 14)
+            inst_text = inst_font.render("Click a piece, then click a highlighted square to move", 
+                                        True, (150, 150, 150))
+            inst_rect = inst_text.get_rect(center=(self.WINDOW_WIDTH // 2, panel_y + 70))
             self.screen.blit(inst_text, inst_rect)
+        
+        # Draw turn indicator (small circle)
+        indicator_y = panel_y + 35
+        if self.board.current_turn == Color.WHITE:
+            indicator_color = (255, 255, 255)
+        else:
+            indicator_color = (50, 50, 50)
+        
+        indicator_x = self.WINDOW_WIDTH // 2 - text.get_width() // 2 - 25
+        pygame.draw.circle(self.screen, indicator_color, (indicator_x, indicator_y), 6)
+        pygame.draw.circle(self.screen, (100, 100, 100), (indicator_x, indicator_y), 6, 1)
     
     def handle_click(self, pos: Tuple[int, int]):
         """Handle mouse click on the board."""
@@ -311,8 +363,18 @@ class ChessPygameGUI:
             return  # Not player's turn or AI is thinking
         
         x, y = pos
-        if y > self.BOARD_SIZE:
-            return  # Clicked on panel, not board
+        board_start_y = self.BOARD_BORDER
+        board_end_y = board_start_y + self.BOARD_SIZE
+        board_start_x = self.BOARD_BORDER
+        board_end_x = board_start_x + self.BOARD_SIZE
+        
+        # Check if click is within board bounds
+        if not (board_start_x <= x <= board_end_x and board_start_y <= y <= board_end_y):
+            return  # Clicked outside board
+        
+        # Adjust coordinates for board offset
+        x -= board_start_x
+        y -= board_start_y
         
         col = x // self.SQUARE_SIZE
         row = y // self.SQUARE_SIZE
@@ -406,7 +468,7 @@ class ChessPygameGUI:
                     # AI move timer
                     self.make_ai_move()
             
-            # Draw everything
+            # Draw everything with professional background
             self.screen.fill(self.BG_COLOR)
             self.draw_board()
             self.draw_panel()
