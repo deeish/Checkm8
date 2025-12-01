@@ -1,0 +1,25 @@
+# Test Positions for CheckM8 Chess Game
+# Format: FEN position (simplified) or description
+# Used for accuracy and timing tests
+
+# Starting position
+rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w
+
+# Simple tactical position 1 (Scholar's Mate setup)
+r1bqkb1r/pppp1Qpp/2n2n2/4p3/2B1P3/8/PPPP1PPP/RNB1K1NR b
+
+# Simple tactical position 2 (Fork opportunity)
+r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w
+
+# Middlegame position 1
+r1bqkb1r/pp2pppp/2n2n2/3p4/3PP3/5N2/PPP2PPP/RNBQKB1R w
+
+# Middlegame position 2
+r1bqk2r/pp2bppp/2n1pn2/3p4/2PP4/2N1PN2/PP3PPP/R1BQKB1R w
+
+# Endgame position 1 (King and pawn)
+8/8/8/8/4P3/8/4K3/4k3 w
+
+# Endgame position 2 (Rook endgame)
+8/8/8/8/4R3/8/4K3/4k3 w
+
