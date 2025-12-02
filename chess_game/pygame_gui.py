@@ -41,6 +41,9 @@ class ChessPygameGUI:
         self.selected_square: Optional[Tuple[int, int]] = None
         self.valid_moves: list = []
         
+        # Initialize evaluation
+        self.current_evaluation = self.ai.evaluator.evaluate(self.board, Color.WHITE)
+        
         # Create window
         self.screen = pygame.display.set_mode((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
         pygame.display.set_caption("CheckM8 - Chess Game")
@@ -56,8 +59,11 @@ class ChessPygameGUI:
         # Clock for frame rate
         self.clock = pygame.time.Clock()
         
-        # AI thinking flag
+        # AI thinking flag and evaluation info
         self.ai_thinking = False
+        self.current_evaluation = 0
+        self.ai_nodes_evaluated = 0
+        self.ai_best_value = 0
         
         # Start AI move if it's AI's turn
         if self.board.current_turn == self.ai.color:
@@ -334,6 +340,42 @@ class ChessPygameGUI:
             status_text = f"{turn} to move"
             color = self.TEXT_LIGHT
         
+        # Display evaluation score
+        eval_font = pygame.font.SysFont('Arial', 16)
+        eval_score = self.current_evaluation
+        if eval_score > 0:
+            eval_text = f"Evaluation: +{eval_score/100:.1f}"
+            eval_color = (150, 255, 150)  # Green for advantage
+        elif eval_score < 0:
+            eval_text = f"Evaluation: {eval_score/100:.1f}"
+            eval_color = (255, 150, 150)  # Red for disadvantage
+        else:
+            eval_text = "Evaluation: 0.0"
+            eval_color = (200, 200, 200)  # Gray for equal
+        
+        eval_surface = eval_font.render(eval_text, True, eval_color)
+        eval_rect = eval_surface.get_rect()
+        eval_rect.centerx = self.WINDOW_WIDTH // 2
+        eval_rect.y = panel_y + 90
+        self.screen.blit(eval_surface, eval_rect)
+        
+        # Show AI search info when AI is thinking or just moved
+        if self.ai_thinking or (self.board.current_turn == Color.WHITE and self.ai_nodes_evaluated > 0):
+            info_font = pygame.font.SysFont('Arial', 12)
+            if self.ai_thinking:
+                # Update node count during search (approximate)
+                if self.ai_nodes_evaluated == 0:
+                    info_text = "Searching..."
+                else:
+                    info_text = f"Searching... {self.ai_nodes_evaluated} nodes"
+            else:
+                info_text = f"Last search: {self.ai_nodes_evaluated} nodes"
+            info_surface = info_font.render(info_text, True, (120, 120, 120))
+            info_rect = info_surface.get_rect()
+            info_rect.centerx = self.WINDOW_WIDTH // 2
+            info_rect.y = panel_y + 105
+            self.screen.blit(info_surface, info_rect)
+        
         text = status_font.render(status_text, True, color)
         text_rect = text.get_rect(center=(self.WINDOW_WIDTH // 2, panel_y + 35))
         self.screen.blit(text, text_rect)
@@ -400,11 +442,14 @@ class ChessPygameGUI:
                 if self.board.make_move(from_row, from_col, row, col, promotion_piece):
                     self.selected_square = None
                     self.valid_moves = []
+                    # Update evaluation after player move
+                    self.current_evaluation = self.ai.evaluator.evaluate(self.board, Color.WHITE)
                     self.check_game_over()
                     
                     # Trigger AI move
                     if self.board.current_turn == self.ai.color:
                         self.ai_thinking = True
+                        self.ai_nodes_evaluated = 0  # Reset counter
                         pygame.time.set_timer(pygame.USEREVENT, 100)
                 else:
                     self.selected_square = None
@@ -435,11 +480,18 @@ class ChessPygameGUI:
         if self.board.current_turn != self.ai.color or not self.ai_thinking:
             return
         
+        # Get AI move and evaluation info
         move = self.ai.get_best_move(self.board)
+        self.ai_nodes_evaluated = self.ai.get_nodes_evaluated()
+        
         if move is not None:
             from_row, from_col, to_row, to_col = move
+            # Get evaluation before move
+            self.ai_best_value = self.ai.evaluator.evaluate(self.board, self.ai.color)
             # AI always promotes to Queen
             self.board.make_move(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
+            # Update current evaluation after move (from White's perspective)
+            self.current_evaluation = self.ai.evaluator.evaluate(self.board, Color.WHITE)
             self.check_game_over()
         else:
             self.check_game_over()

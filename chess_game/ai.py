@@ -24,7 +24,8 @@ class ChessAI:
     
     def get_best_move(self, board: Board) -> Optional[Tuple[int, int, int, int]]:
         """
-        Get the best move using Minimax with Alpha-Beta Pruning and move ordering.
+        Get the best move using improved Minimax with Alpha-Beta Pruning.
+        Uses iterative deepening for better move selection at higher depths.
         
         Returns:
             Tuple of (from_row, from_col, to_row, to_col) or None if no moves available
@@ -38,8 +39,34 @@ class ChessAI:
         if not moves:
             return None
         
+        # Use iterative deepening for depth >= 2
+        if self.depth >= 2:
+            return self._iterative_deepening(board, moves)
+        else:
+            return self._search_at_depth(board, moves, self.depth)
+    
+    def _iterative_deepening(self, board: Board, moves: List[Tuple[int, int, int, int]]) -> Optional[Tuple[int, int, int, int]]:
+        """Use iterative deepening to find best move efficiently."""
+        best_move = None
+        
+        # Search at increasing depths (reuses previous best move as starting point)
+        for current_depth in range(1, self.depth + 1):
+            result = self._search_at_depth(board, moves, current_depth)
+            if result is not None:
+                best_move = result
+                # Reorder moves to put best move first for next iteration
+                if best_move in moves:
+                    moves.remove(best_move)
+                    moves.insert(0, best_move)
+        
+        return best_move
+    
+    def _search_at_depth(self, board: Board, moves: List[Tuple[int, int, int, int]], depth: int) -> Optional[Tuple[int, int, int, int]]:
+        """Search for best move at a specific depth."""
         # Sort moves for better alpha-beta pruning (captures first, then others)
-        moves = self._order_moves(board, moves)
+        # Only reorder if not already ordered from iterative deepening
+        if depth == self.depth or len(moves) > 1:
+            moves = self._order_moves(board, moves)
         
         best_move = None
         best_value = float('-inf')
@@ -51,7 +78,7 @@ class ChessAI:
             # AI always promotes to Queen (best choice)
             new_board = board.make_move_copy(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
             
-            value = self._minimax(new_board, self.depth - 1, alpha, beta, False)
+            value = self._minimax(new_board, depth - 1, alpha, beta, False)
             
             if value > best_value:
                 best_value = value
@@ -64,17 +91,33 @@ class ChessAI:
         return best_move
     
     def _order_moves(self, board: Board, moves: List[Tuple[int, int, int, int]]) -> List[Tuple[int, int, int, int]]:
-        """Order moves to improve alpha-beta pruning efficiency (captures first)."""
+        """Order moves to improve alpha-beta pruning efficiency.
+        Prioritizes: captures, checks, center moves, then others.
+        """
         def move_score(move):
             from_row, from_col, to_row, to_col = move
-            # Check if it's a capture
+            score = 0
+            
+            # Check if it's a capture (highest priority)
             target = board.get_piece(to_row, to_col)
             if target is not None:
                 # Higher value for capturing more valuable pieces
-                return 1000 + target.get_value()
-            return 0
+                score += 10000 + target.get_value()
+            
+            # Check if move gives check
+            test_board = board.make_move_copy(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
+            opponent_color = Color.BLACK if board.current_turn == Color.WHITE else Color.WHITE
+            if test_board.is_in_check(opponent_color):
+                score += 5000
+            
+            # Center control bonus
+            center_squares = [(3, 3), (3, 4), (4, 3), (4, 4)]
+            if (to_row, to_col) in center_squares:
+                score += 100
+            
+            return score
         
-        # Sort by score (captures first)
+        # Sort by score (best moves first)
         return sorted(moves, key=move_score, reverse=True)
     
     def _minimax(
@@ -117,8 +160,8 @@ class ChessAI:
                 # Stalemate
                 return 0
         
-        # Order moves for better pruning (only at very top level to save time)
-        if depth == self.depth - 1:
+        # Order moves for better pruning (at top 2 levels for efficiency)
+        if depth >= self.depth - 2:
             moves = self._order_moves(board, moves)
         
         if maximizing:
