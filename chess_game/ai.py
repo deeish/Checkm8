@@ -2,7 +2,7 @@
 
 from typing import Optional, Tuple, List
 from .board import Board
-from .pieces import Color
+from .pieces import Color, PieceType
 from .evaluator import Evaluator
 
 
@@ -48,7 +48,8 @@ class ChessAI:
         
         for move in moves:
             from_row, from_col, to_row, to_col = move
-            new_board = board.make_move_copy(from_row, from_col, to_row, to_col)
+            # AI always promotes to Queen (best choice)
+            new_board = board.make_move_copy(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
             
             value = self._minimax(new_board, self.depth - 1, alpha, beta, False)
             
@@ -124,7 +125,8 @@ class ChessAI:
             max_eval = float('-inf')
             for move in moves:
                 from_row, from_col, to_row, to_col = move
-                new_board = board.make_move_copy(from_row, from_col, to_row, to_col)
+                # AI always promotes to Queen
+                new_board = board.make_move_copy(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
                 eval_score = self._minimax(new_board, depth - 1, alpha, beta, False)
                 max_eval = max(max_eval, eval_score)
                 alpha = max(alpha, eval_score)
@@ -135,7 +137,8 @@ class ChessAI:
             min_eval = float('inf')
             for move in moves:
                 from_row, from_col, to_row, to_col = move
-                new_board = board.make_move_copy(from_row, from_col, to_row, to_col)
+                # Opponent also promotes to Queen (assume best play)
+                new_board = board.make_move_copy(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
                 eval_score = self._minimax(new_board, depth - 1, alpha, beta, True)
                 min_eval = min(min_eval, eval_score)
                 beta = min(beta, eval_score)

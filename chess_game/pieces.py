@@ -81,6 +81,16 @@ class MoveGenerator:
                 if target is not None and target.color != color:
                     moves.append((row + direction, new_col))
         
+        # En passant capture
+        if board.en_passant_target is not None:
+            ep_row, ep_col = board.en_passant_target
+            # En passant is possible if:
+            # 1. The target square is one row forward in the direction of movement
+            # 2. The target square is one column away horizontally
+            capture_row = row + direction
+            if capture_row == ep_row and abs(ep_col - col) == 1:
+                moves.append((ep_row, ep_col))
+        
         return moves
     
     @staticmethod
@@ -152,8 +162,8 @@ class MoveGenerator:
         return moves
     
     @staticmethod
-    def get_king_moves(board: 'Board', row: int, col: int, color: Color) -> List[Tuple[int, int]]:
-        """Generate king moves."""
+    def get_king_moves(board: 'Board', row: int, col: int, color: Color, skip_castling: bool = False) -> List[Tuple[int, int]]:
+        """Generate king moves including castling."""
         moves = []
         king_moves = [(-1, -1), (-1, 0), (-1, 1), (0, -1), (0, 1), (1, -1), (1, 0), (1, 1)]
         
@@ -164,10 +174,21 @@ class MoveGenerator:
                 if target is None or target.color != color:
                     moves.append((new_row, new_col))
         
+        # Add castling moves if king is on starting square (e1/e8) and not skipping castling
+        if not skip_castling:
+            king_row = 7 if color == Color.WHITE else 0
+            if row == king_row and col == 4:  # King on e1/e8
+                # Kingside castling (O-O): king moves to g1/g8
+                if board.can_castle_kingside(color):
+                    moves.append((king_row, 6))  # g-file
+                # Queenside castling (O-O-O): king moves to c1/c8
+                if board.can_castle_queenside(color):
+                    moves.append((king_row, 2))  # c-file
+        
         return moves
     
     @staticmethod
-    def get_moves(board: 'Board', row: int, col: int) -> List[Tuple[int, int]]:
+    def get_moves(board: 'Board', row: int, col: int, skip_castling: bool = False) -> List[Tuple[int, int]]:
         """Get all legal moves for a piece at the given position."""
         piece = board.board[row][col]
         if piece is None:
@@ -184,6 +205,8 @@ class MoveGenerator:
         
         generator = move_generators.get(piece.type)
         if generator:
+            if piece.type == PieceType.KING:
+                return generator(board, row, col, piece.color, skip_castling)
             return generator(board, row, col, piece.color)
         return []
 

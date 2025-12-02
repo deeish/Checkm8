@@ -151,7 +151,14 @@ class ChessGUI:
             
             # If clicking on a valid move square, make the move
             if (row, col) in self.valid_moves:
-                if self.board.make_move(from_row, from_col, row, col):
+                # Check if promotion is needed
+                promotion_piece = None
+                if self.board.needs_promotion(from_row, from_col, row):
+                    promotion_piece = self.show_promotion_dialog()
+                    if promotion_piece is None:
+                        promotion_piece = PieceType.QUEEN  # Default to Queen
+                
+                if self.board.make_move(from_row, from_col, row, col, promotion_piece):
                     self.selected_square = None
                     self.valid_moves = []
                     self.draw_board()
@@ -195,7 +202,8 @@ class ChessGUI:
         move = self.ai.get_best_move(self.board)
         if move is not None:
             from_row, from_col, to_row, to_col = move
-            self.board.make_move(from_row, from_col, to_row, to_col)
+            # AI always promotes to Queen
+            self.board.make_move(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
             self.draw_board()
             self.update_status()
             self.check_game_over()
@@ -216,6 +224,55 @@ class ChessGUI:
         else:
             turn = "White" if self.board.current_turn == Color.WHITE else "Black"
             self.status_label.config(text=f"{turn} to move")
+    
+    def show_promotion_dialog(self) -> Optional[PieceType]:
+        """Show a dialog to select promotion piece. Returns the selected piece type or None."""
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Pawn Promotion")
+        dialog.geometry("380x160")
+        dialog.resizable(False, False)
+        dialog.transient(self.root)
+        dialog.grab_set()  # Make dialog modal
+        
+        # Center the dialog
+        dialog.update_idletasks()
+        x = (dialog.winfo_screenwidth() // 2) - (380 // 2)
+        y = (dialog.winfo_screenheight() // 2) - (160 // 2)
+        dialog.geometry(f"380x160+{x}+{y}")
+        
+        label = tk.Label(dialog, text="Choose a piece to promote to:", font=('Arial', 12))
+        label.pack(pady=10)
+        
+        selected_piece = [None]  # Use list to allow modification in nested function
+        
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=10)
+        
+        pieces = [
+            (PieceType.QUEEN, '♕', 'Queen'),
+            (PieceType.ROOK, '♖', 'Rook'),
+            (PieceType.BISHOP, '♗', 'Bishop'),
+            (PieceType.KNIGHT, '♘', 'Knight')
+        ]
+        
+        for piece_type, symbol, name in pieces:
+            btn = tk.Button(
+                button_frame,
+                text=f"{symbol}\n{name}",
+                font=('Arial', 14),
+                width=7,
+                height=2,
+                command=lambda pt=piece_type: self._select_promotion(dialog, selected_piece, pt)
+            )
+            btn.pack(side=tk.LEFT, padx=6)
+        
+        dialog.wait_window()
+        return selected_piece[0]
+    
+    def _select_promotion(self, dialog, selected_piece, piece_type):
+        """Handle promotion piece selection."""
+        selected_piece[0] = piece_type
+        dialog.destroy()
     
     def check_game_over(self):
         """Check if the game is over and show message."""

@@ -390,7 +390,14 @@ class ChessPygameGUI:
             
             # If clicking on a valid move square, make the move
             if (row, col) in self.valid_moves:
-                if self.board.make_move(from_row, from_col, row, col):
+                # Check if promotion is needed
+                promotion_piece = None
+                if self.board.needs_promotion(from_row, from_col, row):
+                    promotion_piece = self.show_promotion_selection()
+                    if promotion_piece is None:
+                        promotion_piece = PieceType.QUEEN  # Default to Queen
+                
+                if self.board.make_move(from_row, from_col, row, col, promotion_piece):
                     self.selected_square = None
                     self.valid_moves = []
                     self.check_game_over()
@@ -431,7 +438,8 @@ class ChessPygameGUI:
         move = self.ai.get_best_move(self.board)
         if move is not None:
             from_row, from_col, to_row, to_col = move
-            self.board.make_move(from_row, from_col, to_row, to_col)
+            # AI always promotes to Queen
+            self.board.make_move(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
             self.check_game_over()
         else:
             self.check_game_over()
@@ -447,6 +455,103 @@ class ChessPygameGUI:
             self.show_message("Game Over", "Checkmate! White wins!")
         elif self.board.is_stalemate(self.board.current_turn):
             self.show_message("Game Over", "Stalemate! Game is a draw.")
+    
+    def show_promotion_selection(self) -> Optional[PieceType]:
+        """Show a promotion piece selection UI. Returns the selected piece type or None."""
+        pieces = [
+            (PieceType.QUEEN, '♕'),
+            (PieceType.ROOK, '♖'),
+            (PieceType.BISHOP, '♗'),
+            (PieceType.KNIGHT, '♘')
+        ]
+        
+        # Create a semi-transparent overlay
+        overlay = pygame.Surface((self.WINDOW_WIDTH, self.WINDOW_HEIGHT))
+        overlay.set_alpha(200)
+        overlay.fill((0, 0, 0))
+        
+        # Draw selection panel
+        panel_width = 450
+        panel_height = 180
+        panel_x = (self.WINDOW_WIDTH - panel_width) // 2
+        panel_y = (self.WINDOW_HEIGHT - panel_height) // 2
+        
+        # Draw panel background
+        panel_rect = pygame.Rect(panel_x, panel_y, panel_width, panel_height)
+        pygame.draw.rect(overlay, (50, 50, 50), panel_rect)
+        pygame.draw.rect(overlay, (100, 100, 100), panel_rect, 3)
+        
+        # Draw title
+        title_font = pygame.font.SysFont('Arial', 24, bold=True)
+        title_text = title_font.render("Choose a piece to promote to:", True, self.TEXT_LIGHT)
+        title_rect = title_text.get_rect(center=(self.WINDOW_WIDTH // 2, panel_y + 30))
+        overlay.blit(title_text, title_rect)
+        
+        # Draw piece buttons
+        button_size = 70
+        button_spacing = 25
+        total_width = len(pieces) * button_size + (len(pieces) - 1) * button_spacing
+        start_x = (self.WINDOW_WIDTH - total_width) // 2
+        
+        button_rects = []
+        piece_names = ['Queen', 'Rook', 'Bishop', 'Knight']
+        for i, (piece_type, symbol) in enumerate(pieces):
+            btn_x = start_x + i * (button_size + button_spacing)
+            btn_y = panel_y + 65
+            btn_rect = pygame.Rect(btn_x, btn_y, button_size, button_size)
+            button_rects.append((btn_rect, piece_type))
+            
+            # Draw button
+            pygame.draw.rect(overlay, (80, 80, 80), btn_rect)
+            pygame.draw.rect(overlay, (150, 150, 150), btn_rect, 2)
+            
+            # Draw piece symbol
+            symbol_font = pygame.font.SysFont('arialunicode', 45, bold=True)
+            symbol_text = symbol_font.render(symbol, True, self.TEXT_LIGHT)
+            symbol_rect = symbol_text.get_rect(center=(btn_rect.centerx, btn_rect.centery - 8))
+            overlay.blit(symbol_text, symbol_rect)
+            
+            # Draw piece name below symbol
+            name_font = pygame.font.SysFont('Arial', 12, bold=True)
+            name_text = name_font.render(piece_names[i], True, self.TEXT_LIGHT)
+            name_rect = name_text.get_rect(center=(btn_rect.centerx, btn_rect.bottom - 12))
+            overlay.blit(name_text, name_rect)
+        
+        # Main loop for promotion selection
+        selected_piece = None
+        clock = pygame.time.Clock()
+        running = True
+        
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    selected_piece = PieceType.QUEEN  # Default
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left click
+                        mouse_pos = event.pos
+                        for btn_rect, piece_type in button_rects:
+                            if btn_rect.collidepoint(mouse_pos):
+                                selected_piece = piece_type
+                                running = False
+                                break
+            
+            # Draw everything
+            self.screen.fill(self.BG_COLOR)
+            self.draw_board()
+            self.draw_panel()
+            self.screen.blit(overlay, (0, 0))
+            
+            # Highlight hovered button
+            mouse_pos = pygame.mouse.get_pos()
+            for btn_rect, piece_type in button_rects:
+                if btn_rect.collidepoint(mouse_pos):
+                    pygame.draw.rect(self.screen, (150, 150, 255), btn_rect, 3)
+            
+            pygame.display.flip()
+            clock.tick(60)
+        
+        return selected_piece
     
     def show_message(self, title: str, message: str):
         """Show a message dialog (simple text on screen)."""

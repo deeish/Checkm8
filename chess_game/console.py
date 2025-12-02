@@ -1,7 +1,7 @@
 """Console-based interface for the chess game (fallback when GUI is unavailable)."""
 
 from .board import Board
-from .pieces import Color
+from .pieces import Color, PieceType
 from .ai import ChessAI
 
 
@@ -66,6 +66,35 @@ class ChessConsole:
             print(f"Valid moves: {', '.join([chr(97+c)+str(8-r) for r, c in piece_moves])}")
         return piece_moves
     
+    def get_promotion_choice(self) -> PieceType:
+        """Get promotion piece choice from user."""
+        print("\nPawn promotion! Choose a piece:")
+        print("1. Queen (Q)")
+        print("2. Rook (R)")
+        print("3. Bishop (B)")
+        print("4. Knight (N)")
+        
+        while True:
+            try:
+                choice = input("Enter choice (1-4, default=1): ").strip()
+                if not choice:
+                    return PieceType.QUEEN
+                
+                choice_map = {
+                    '1': PieceType.QUEEN,
+                    '2': PieceType.ROOK,
+                    '3': PieceType.BISHOP,
+                    '4': PieceType.KNIGHT
+                }
+                
+                if choice in choice_map:
+                    return choice_map[choice]
+                else:
+                    print("Invalid choice. Enter 1, 2, 3, or 4.")
+            except (KeyboardInterrupt, EOFError):
+                print("\nDefaulting to Queen.")
+                return PieceType.QUEEN
+    
     def run(self):
         """Run the console game loop."""
         print("="*50)
@@ -103,7 +132,15 @@ class ChessConsole:
                     break
                 
                 from_row, from_col, to_row, to_col = move
-                if self.board.make_move(from_row, from_col, to_row, to_col):
+                
+                # Check if promotion is needed
+                promotion_piece = None
+                if self.board.needs_promotion(from_row, from_col, to_row):
+                    promotion_piece = self.get_promotion_choice()
+                    if promotion_piece is None:
+                        promotion_piece = PieceType.QUEEN  # Default to Queen
+                
+                if self.board.make_move(from_row, from_col, to_row, to_col, promotion_piece):
                     print("Move made successfully!")
                 else:
                     print("Invalid move! Try again.")
@@ -115,7 +152,8 @@ class ChessConsole:
                     from_row, from_col, to_row, to_col = move
                     from_sq = chr(97 + from_col) + str(8 - from_row)
                     to_sq = chr(97 + to_col) + str(8 - to_row)
-                    self.board.make_move(from_row, from_col, to_row, to_col)
+                    # AI always promotes to Queen
+                    self.board.make_move(from_row, from_col, to_row, to_col, promotion_piece=PieceType.QUEEN)
                     print(f"AI plays: {from_sq} {to_sq}")
                 else:
                     print("AI has no moves available.")
