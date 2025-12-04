@@ -11,7 +11,7 @@ A chess game implementation in Python featuring an AI opponent that uses Minimax
   - King safety
   - Piece mobility (number of legal moves)
   - Center control
-- **Graphical Interface**: Beautiful 2D chess board with piece graphics using Pygame (with tkinter fallback)
+- **Graphical Interface**: Clean 2D chess board with Unicode chess pieces using Tkinter
 - **Performance Optimized**: AI moves typically complete in ≤1 second at depth 3
 
 ## Installation
@@ -80,16 +80,15 @@ python main.py --console
 
 ### Game Modes
 
-- **Pygame GUI Mode** (Default): Beautiful 2D chess board with visual pieces
+- **Tkinter GUI Mode** (Default): Clean graphical interface with Unicode chess pieces
   - Click a piece to select it
   - Click highlighted squares to move
   - Shows valid moves with yellow highlighting
-  - Status panel at bottom shows current turn and game state
-  
-- **Tkinter GUI Mode**: Fallback graphical interface (if Pygame unavailable)
+  - Status label shows current turn and game state
+  - Modern dark theme with professional styling
   
 - **Console Mode**: Text-based interface using algebraic notation (e.g., "e2 e4")
-  - Automatically used if both GUIs are unavailable
+  - Automatically used if GUI is unavailable
   - Can be forced with `--console` flag
 
 ### Running Tests

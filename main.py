@@ -26,24 +26,9 @@ def main():
         print("Warning: Depth should be between 1 and 5. Using default depth 3.")
         args.depth = 3
     
-    # Try Pygame GUI first (most reliable), fall back to tkinter, then console
+    # Use tkinter GUI as default (most reliable), fall back to console
     if not args.console:
-        # Try Pygame GUI
-        try:
-            from chess_game.pygame_gui import ChessPygameGUI
-            print(f"Starting CheckM8 Chess Game with AI depth {args.depth}")
-            print("You are playing as White. The AI is playing as Black.")
-            app = ChessPygameGUI(ai_depth=args.depth)
-            app.run()
-            return
-        except (ImportError, ModuleNotFoundError) as e:
-            print(f"Pygame not available ({e})")
-            print("Trying tkinter GUI...")
-        except Exception as e:
-            print(f"Pygame GUI error: {e}")
-            print("Trying tkinter GUI...")
-        
-        # Try tkinter GUI as fallback
+        # Try tkinter GUI (default and preferred)
         try:
             from chess_game.gui import ChessGUI
             print(f"Starting CheckM8 Chess Game with AI depth {args.depth}")
